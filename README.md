@@ -4,6 +4,11 @@ mumax3
 
 GPU accelerated micromagnetic simulator.
 
+Edits:
+  - Add in engine/: oscillator.go, heunoscillator.go, rk45dposcillator.go, rk56oscillator.go
+  - Modify in engine/: run.go, torque.go
+  - Add folder example/ with example .mx3 file for simulating coupled spin torque oscillators
+
 
 Downloads and documentation
 ---------------------------
