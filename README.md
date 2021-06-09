@@ -7,7 +7,7 @@ GPU accelerated micromagnetic simulator.
 Edits:
   - Add in engine/: oscillator.go, rk45dposcillator.go, rk56oscillator.go
   - Modify in engine/: run.go, torque.go
-  - Add folder example/ with example .mx3 file for simulating coupled spin torque oscillators
+  - Add folder examples/ with .mx3 file showing usage of new source code functions for simulating coupled oscillators
 
 
 Downloads and documentation
