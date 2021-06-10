@@ -33,7 +33,7 @@ https://godoc.org/github.com/mumax/3/cmd
 Building from source (for linux)
 --------------------
 
-Consider downloading a pre-compiled binary. If you want to compile nevertheless:
+Using this modified source code requires manually compiling:
 
   * install the nvidia proprietary driver, if not yet present.
    - if unsure, it's probably already there
