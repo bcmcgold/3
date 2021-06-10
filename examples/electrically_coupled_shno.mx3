@@ -1,1 +1,83 @@
-placeholder.
+// Already Defined
+// pi := 3.1415926535897932385
+// mu0 := 4*pi*1e-7
+
+// SHNO dimensions
+shno_diam_x := 200e-9
+shno_diam_y := 120e-9
+
+// specify 6-um long strip geometry for the 4 SHNO
+xlen_total := 6000e-9
+ylen_total := shno_diam_y
+zlen_total := 1.5e-9
+GridSize_x := 1200
+GridSize_y := 24
+GridSize_z := 1
+SetGridSize(GridSize_x, GridSize_y, GridSize_z)
+SetCellSize(xlen_total/GridSize_x, ylen_total/GridSize_y, zlen_total/GridSize_z)
+
+// constrain geometry to 4 SHNO in a row
+shno1 := Ellipse(shno_diam_x,shno_diam_y).transl(-(xlen_total-shno_diam_x)/2, 0, 0)
+defregion(1,shno1)
+shno2 := Ellipse(shno_diam_x,shno_diam_y).transl(-(xlen_total-shno_diam_x)/2+2000e-9, 0, 0)
+defregion(2,shno2)
+shno3 := Ellipse(shno_diam_x,shno_diam_y).transl((xlen_total-shno_diam_x)/2-2000e-9, 0, 0)
+defregion(3,shno3)
+shno4 := Ellipse(shno_diam_x,shno_diam_y).transl((xlen_total-shno_diam_x)/2, 0, 0)
+defregion(4,shno4)
+setgeom( shno1.add(shno2).add(shno3).add(shno4) )
+save(regions)
+
+// set material properties for CoFeB free layer
+Msat = 800e3     // Saturation Magnetization, in A/m
+Aex = 13e-12     // Exchange Constant, J/m
+alpha = .02 // Gilbert Damping Coefficient
+
+// SOT parameters (Pt)
+lambda       = 1
+Pol          = 0.07
+epsilonprime = 0
+FixedLayerPosition = FIXEDLAYER_BOTTOM
+flAngle := 30
+fixedlayer = vector(sin(flAngle*pi/180), -cos(flAngle*pi/180), 0)
+
+// perpendicular magnetic anisotropy
+Ku1 = .18e6
+anisU = vector(0,0,1)
+
+// output resistance of SHNOs
+SetOutputResistance(1200, 2400) // P, AP resistance (ohms) are respective arguments
+SetCoupling(-1, -1, -1, -1, -1, -1) // coupling constants S12, S13, S14, S23, S24, S34
+SetSolver(8) // rk45oscillator solver 8, necessary to update R at each timestep
+//SetSolver(9) // other solver option is rk56oscillator solver 9, updates R at each timestep
+
+// save quantities to output table
+TableAdd(m.region(1))
+TableAdd(m.region(2))
+TableAdd(m.region(3))
+TableAdd(m.region(4))
+TableAdd(Rout1)
+TableAdd(Rout2)
+TableAdd(Rout3)
+TableAdd(Rout4)
+TableAdd(J)
+TableAdd(Jcpl.region(1))
+TableAdd(Jcpl.region(2))
+TableAdd(Jcpl.region(3))
+TableAdd(Jcpl.region(4))
+TableAutoSave(10e-12)
+
+// initialize static magnetization
+m = uniform(.1,1,0)
+B_ext = vector(0, 20e-3, 0)
+relax()
+
+// get to free-running oscillation
+Jdc := -4.4e11
+J=vector(0, 0, Jdc)
+run(100e-9)
+save(m)
+
+// turn on coupling
+SetJread(4.0e11/600/3)
+run(500e-9)
