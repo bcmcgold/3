@@ -1,11 +1,10 @@
 package engine
 
 import (
-	"reflect"
-
 	"github.com/mumax/3/cuda"
 	"github.com/mumax/3/data"
 	"github.com/mumax/3/util"
+	"reflect"
 )
 
 var (
@@ -15,7 +14,6 @@ var (
 	Lambda                           = NewScalarParam("Lambda", "", "Slonczewski Λ parameter")
 	EpsilonPrime                     = NewScalarParam("EpsilonPrime", "", "Slonczewski secondairy STT term ε'")
 	FrozenSpins                      = NewScalarParam("frozenspins", "", "Defines spins that should be fixed") // 1 - frozen, 0 - free. TODO: check if it only contains 0/1 values
-	FreeLayerThickness               = NewScalarParam("FreeLayerThickness", "m", "Slonczewski free layer thickness (if set to zero (default), then the thickness will be deduced from the mesh size)")
 	FixedLayer                       = NewExcitation("FixedLayer", "", "Slonczewski fixed layer polarization")
 	Torque                           = NewVectorField("torque", "T", "Total torque/γ0", SetTorque)
 	LLTorque                         = NewVectorField("LLtorque", "T", "Landau-Lifshitz torque/γ0", SetLLTorque)
@@ -45,6 +43,7 @@ func init() {
 func SetTorque(dst *data.Slice) {
 	SetLLTorque(dst)
 	AddSTTorque(dst)
+	AddCouplingTorque(dst)
 	FreezeSpins(dst)
 }
 
@@ -102,11 +101,57 @@ func AddSTTorque(dst *data.Slice) {
 		defer lambda.Recycle()
 		epsPrime := EpsilonPrime.MSlice()
 		defer epsPrime.Recycle()
-		thickness := FreeLayerThickness.MSlice()
-		defer thickness.Recycle()
 		cuda.AddSlonczewskiTorque2(dst, M.Buffer(),
 			msat, j, fixedP, alpha, pol, lambda, epsPrime,
-			thickness,
+			CurrentSignFromFixedLayerPosition[fixedLayerPosition],
+			Mesh())
+	}
+}
+
+// Adds the current oscillator coupling torque to dst
+func AddCouplingTorque(dst *data.Slice) {
+	if Jcpl.isZero() {
+		return
+	}
+	util.AssertMsg(!Pol.isZero(), "spin polarization should not be 0")
+	jspin, rec := Jcpl.Slice()
+	if rec {
+		defer cuda.Recycle(jspin)
+	}
+	fl, rec := FixedLayer.Slice()
+	if rec {
+		defer cuda.Recycle(fl)
+	}
+	if !DisableZhangLiTorque {
+		msat := Msat.MSlice()
+		defer msat.Recycle()
+		j := Jcpl.MSlice()
+		defer j.Recycle()
+		alpha := Alpha.MSlice()
+		defer alpha.Recycle()
+		xi := Xi.MSlice()
+		defer xi.Recycle()
+		pol := Pol.MSlice()
+		defer pol.Recycle()
+		cuda.AddZhangLiTorque(dst, M.Buffer(), msat, j, alpha, xi, pol, Mesh())
+	}
+	if !DisableSlonczewskiTorque && !FixedLayer.isZero() {
+		msat := Msat.MSlice()
+		defer msat.Recycle()
+		j := Jcpl.MSlice()
+		defer j.Recycle()
+		fixedP := FixedLayer.MSlice()
+		defer fixedP.Recycle()
+		alpha := Alpha.MSlice()
+		defer alpha.Recycle()
+		pol := Pol.MSlice()
+		defer pol.Recycle()
+		lambda := Lambda.MSlice()
+		defer lambda.Recycle()
+		epsPrime := EpsilonPrime.MSlice()
+		defer epsPrime.Recycle()
+		cuda.AddSlonczewskiTorque2(dst, M.Buffer(),
+			msat, j, fixedP, alpha, pol, lambda, epsPrime,
 			CurrentSignFromFixedLayerPosition[fixedLayerPosition],
 			Mesh())
 	}
@@ -140,9 +185,6 @@ var (
 
 type flposition struct{}
 
-func (*flposition) Eval() interface{} { return fixedLayerPosition }
-func (*flposition) SetValue(v interface{}) {
-	drainOutput()
-	fixedLayerPosition = v.(FixedLayerPosition)
-}
-func (*flposition) Type() reflect.Type { return reflect.TypeOf(FixedLayerPosition(FIXEDLAYER_TOP)) }
+func (*flposition) Eval() interface{}      { return fixedLayerPosition }
+func (*flposition) SetValue(v interface{}) { drainOutput(); fixedLayerPosition = v.(FixedLayerPosition) }
+func (*flposition) Type() reflect.Type     { return reflect.TypeOf(FixedLayerPosition(FIXEDLAYER_TOP)) }

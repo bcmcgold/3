@@ -2,12 +2,11 @@ package engine
 
 import (
 	"fmt"
-	"math"
-	"os"
-
 	"github.com/mumax/3/cuda"
 	"github.com/mumax/3/data"
 	"github.com/mumax/3/util"
+	"math"
+	"os"
 )
 
 // Solver globals
@@ -33,14 +32,14 @@ func init() {
 	DeclFunc("Run", Run, "Run the simulation for a time in seconds")
 	DeclFunc("Steps", Steps, "Run the simulation for a number of time steps")
 	DeclFunc("RunWhile", RunWhile, "Run while condition function is true")
-	DeclFunc("SetSolver", SetSolver, "Set solver type. 1:Euler, 2:Heun, 3:Bogaki-Shampine, 4: Runge-Kutta (RK45), 5: Dormand-Prince, 6: Fehlberg, -1: Backward Euler")
+	DeclFunc("SetSolver", SetSolver, "Set solver type. 1:Euler, 2:Heun")
 	DeclTVar("t", &Time, "Total simulated time (s)")
 	DeclVar("step", &NSteps, "Total number of time steps taken")
 	DeclVar("MinDt", &MinDt, "Minimum time step the solver can take (s)")
 	DeclVar("MaxDt", &MaxDt, "Maximum time step the solver can take (s)")
-	DeclVar("MaxErr", &MaxErr, "Maximum error per step the solver can tolerate (default = 1e-5)")
-	DeclVar("Headroom", &Headroom, "Solver headroom (default = 0.8)")
-	DeclVar("FixDt", &FixDt, "Set a fixed time step, 0 disables fixed step (which is the default)")
+	DeclVar("MaxErr", &MaxErr, "Maximum error per step the solver can tolerate")
+	DeclVar("Headroom", &Headroom, "Solver headroom")
+	DeclVar("FixDt", &FixDt, "Set a fixed time step, 0 disables fixed step")
 	DeclFunc("Exit", Exit, "Exit from the program")
 	SetSolver(DORMANDPRINCE)
 	_ = NewScalarValue("dt", "s", "Time Step", func() float64 { return Dt_si })
@@ -64,6 +63,8 @@ const (
 	RUNGEKUTTA     = 4
 	DORMANDPRINCE  = 5
 	FEHLBERG       = 6
+	DPOSCILLATOR   = 8
+	FOSCILLATOR    = 9
 )
 
 func SetSolver(typ int) {
@@ -88,6 +89,10 @@ func SetSolver(typ int) {
 		stepper = new(RK45DP)
 	case FEHLBERG:
 		stepper = new(RK56)
+    case DPOSCILLATOR:
+        stepper = new(DPoscillator)
+	case FOSCILLATOR:
+		stepper = new(RK56oscillator)
 	}
 	solvertype = typ
 }
@@ -173,7 +178,6 @@ func RunWhile(condition func() bool) {
 	SanityCheck()
 	pause = false // may be set by <-Inject
 	const output = true
-	stepper.Free() // start from a clean state
 	runWhile(condition, output)
 	pause = true
 }
