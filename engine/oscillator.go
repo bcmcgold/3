@@ -59,7 +59,7 @@ func UpdateOutputResistance() {
         R[i] = float64(0.)
     } else {
         mx:=M.Region(i+1).Average().X()
-        R[i]= -mx
+        R[i]= mx
     }
   }
   UpdateCouplingJ() // once MTJ resistance updated, use this to update coupling signal
@@ -77,7 +77,7 @@ func UpdateCouplingJ() {
 func CalcCouplingJ(r int) float64 {
   gcpl := float64(0.0) // summed coupling signals
   for i:=0; i<4; i++ { // iterate over SHNOs coupled to r
-    gcpl += ((Rap-Rp)*R[i]/2)*Gij[r][i] // do not include DC offset in coupling signal
+    gcpl += ((Rp-Rap)*R[i]/2)*Gij[r][i] // do not include DC offset in coupling signal
   }
   return gcpl*Jread
 }
