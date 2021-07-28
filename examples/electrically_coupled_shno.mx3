@@ -1,3 +1,5 @@
+// Example usage of modified source code for modeling 4 electrically coupled SHNOs
+
 // SHNO dimensions
 shno_diam_x := 200e-9
 shno_diam_y := 120e-9
