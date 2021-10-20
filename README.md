@@ -10,7 +10,7 @@ Source edits
   - Add in engine/: oscillator.go, rk45dposcillator.go, rk56oscillator.go
   - Modify in engine/: run.go, torque.go
   - Add folder examples/ with .mx3 file showing usage of new source code functions for simulating coupled oscillators
-  - Refer to paper for more details: xx
+  - Refer to paper for more details: https://arxiv.org/abs/2110.08885
 
 
 Downloads and documentation
